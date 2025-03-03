@@ -21,6 +21,8 @@
         }
         input {
             margin: 5px;
+            padding: 5px;
+            font-size: 16px;
         }
         button {
             padding: 10px;
@@ -32,11 +34,23 @@
 </head>
 <body>
 
-    <h2>Carica due immagini per inserirle nei riquadri</h2>
+    <h2>Carica due immagini e personalizza i testi</h2>
     
     <div class="controls">
         <input type="file" id="imageInput1" accept="image/*">
         <input type="file" id="imageInput2" accept="image/*">
+    </div>
+
+    <div class="controls">
+        <input type="text" id="textBox1" placeholder="Testo sotto la prima immagine">
+        <input type="text" id="textBox2" placeholder="Testo sotto la seconda immagine">
+    </div>
+
+    <div class="controls">
+        <input type="text" id="bottomText" placeholder="Testo centrale in basso">
+    </div>
+
+    <div class="controls">
         <button id="downloadBtn">Scarica Immagine</button>
     </div>
 
@@ -46,7 +60,7 @@
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
-        // Imposta dimensioni fisse per il canvas
+        // Dimensioni fisse per il canvas
         const CANVAS_WIDTH = 1080;
         const CANVAS_HEIGHT = 1350;
         canvas.width = CANVAS_WIDTH;
@@ -54,7 +68,7 @@
 
         // Carica il modello di sfondo
         const background = new Image();
-        background.src = "modelloprova.png"; // Usa il nuovo modello
+        background.src = "modelloprova.png"; 
 
         let image1 = new Image();
         let image2 = new Image();
@@ -62,7 +76,7 @@
 
         background.onload = function() {
             backgroundLoaded = true;
-            drawCanvas(); // Disegna solo dopo il caricamento dello sfondo
+            drawCanvas(); 
         };
 
         document.getElementById("imageInput1").addEventListener("change", function(event) {
@@ -73,41 +87,57 @@
             loadImage(event.target.files[0], image2);
         });
 
+        document.getElementById("textBox1").addEventListener("input", drawCanvas);
+        document.getElementById("textBox2").addEventListener("input", drawCanvas);
+        document.getElementById("bottomText").addEventListener("input", drawCanvas);
+
         function loadImage(file, image) {
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     image.src = e.target.result;
-                    image.onload = () => {
-                        drawCanvas(); // Disegna di nuovo dopo il caricamento
-                    };
+                    image.onload = drawCanvas;
                 };
                 reader.readAsDataURL(file);
             }
         }
 
         function drawCanvas() {
-            if (!backgroundLoaded) return; // Se lo sfondo non è caricato, esci
+            if (!backgroundLoaded) return;
 
             ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
             // Disegna il modello di sfondo
             ctx.drawImage(background, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-            // Posizioni e dimensioni dei due riquadri
+            // Definizione dei riquadri immagine con bordi smussati
             const box1 = { x: 120, y: 300, width: 400, height: 700, radius: 40 };
             const box2 = { x: 590, y: 300, width: 400, height: 700, radius: 40 };
 
-            // Disegna i riquadri con angoli smussati
-            drawRoundedRect(box1);
-            drawRoundedRect(box2);
+            // Disegna i bordi dei riquadri con angoli smussati
+            drawRoundedBorder(box1);
+            drawRoundedBorder(box2);
 
-            // Adatta e inserisce le immagini nei riquadri
+            // Adatta e centra le immagini nei riquadri
             drawFittedImage(image1, box1);
             drawFittedImage(image2, box2);
+
+            // Posizioni e dimensioni per i testi
+            const textBox1 = { x: 190, y: 1000, width: 250, height: 50 };
+            const textBox2 = { x: 665, y: 1000, width: 250, height: 50 };
+            const bottomTextBox = { x: 380, y: 1160, width: 350, height: 60 };
+
+            // Disegna sfondo nero dietro i testi delle immagini
+            drawTextBox(textBox1);
+            drawTextBox(textBox2);
+
+            // Disegna il testo sopra i riquadri neri
+            drawText(document.getElementById("textBox1").value, textBox1);
+            drawText(document.getElementById("textBox2").value, textBox2);
+            drawText(document.getElementById("bottomText").value, bottomTextBox, false);
         }
 
-        function drawRoundedRect(box) {
+        function drawRoundedBorder(box) {
             ctx.beginPath();
             ctx.moveTo(box.x + box.radius, box.y);
             ctx.lineTo(box.x + box.width - box.radius, box.y);
@@ -119,8 +149,8 @@
             ctx.lineTo(box.x, box.y + box.radius);
             ctx.quadraticCurveTo(box.x, box.y, box.x + box.radius, box.y);
             ctx.closePath();
-            ctx.strokeStyle = "#000000"; // Colore bordo riquadro
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = "black"; 
             ctx.stroke();
         }
 
@@ -129,52 +159,54 @@
 
             const imgRatio = img.width / img.height;
             const boxRatio = box.width / box.height;
-            let drawWidth, drawHeight, offsetX, offsetY;
+            let newWidth, newHeight, offsetX, offsetY;
 
             if (imgRatio > boxRatio) {
-                // L'immagine è più larga del riquadro
-                drawHeight = box.height;
-                drawWidth = img.width * (box.height / img.height);
-                offsetX = box.x - (drawWidth - box.width) / 2;
-                offsetY = box.y;
+                newHeight = box.height;
+                newWidth = img.width * (box.height / img.height);
+                offsetX = (box.width - newWidth) / 2;
+                offsetY = 0;
             } else {
-                // L'immagine è più alta del riquadro
-                drawWidth = box.width;
-                drawHeight = img.height * (box.width / img.width);
-                offsetX = box.x;
-                offsetY = box.y - (drawHeight - box.height) / 2;
+                newWidth = box.width;
+                newHeight = img.height * (box.width / img.width);
+                offsetX = 0;
+                offsetY = (box.height - newHeight) / 2;
             }
 
-            // Usa una maschera per mantenere le immagini dentro i riquadri
             ctx.save();
             ctx.beginPath();
-            ctx.moveTo(box.x + box.radius, box.y);
-            ctx.lineTo(box.x + box.width - box.radius, box.y);
-            ctx.quadraticCurveTo(box.x + box.width, box.y, box.x + box.width, box.y + box.radius);
-            ctx.lineTo(box.x + box.width, box.y + box.height - box.radius);
-            ctx.quadraticCurveTo(box.x + box.width, box.y + box.height, box.x + box.width - box.radius, box.y + box.height);
-            ctx.lineTo(box.x + box.radius, box.y + box.height);
-            ctx.quadraticCurveTo(box.x, box.y + box.height, box.x, box.y + box.height - box.radius);
-            ctx.lineTo(box.x, box.y + box.radius);
-            ctx.quadraticCurveTo(box.x, box.y, box.x + box.radius, box.y);
-            ctx.closePath();
+            ctx.roundRect(box.x, box.y, box.width, box.height, box.radius);
             ctx.clip();
-
-            // Disegna l'immagine dentro il riquadro
-            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+            ctx.drawImage(img, box.x + offsetX, box.y + offsetY, newWidth, newHeight);
             ctx.restore();
         }
 
-        // Scarica l'immagine come PNG
+        function drawTextBox(box) {
+            ctx.fillStyle = "black";
+            ctx.fillRect(box.x, box.y, box.width, box.height);
+        }
+
+        function drawText(text, box, drawBackground = true) {
+            if (drawBackground) {
+                ctx.fillStyle = "black";
+                ctx.fillRect(box.x, box.y, box.width, box.height);
+            }
+            ctx.fillStyle = "white"; 
+            ctx.font = "bold 28px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(text, box.x + box.width / 2, box.y + box.height / 2 + 10);
+        }
+
         document.getElementById("downloadBtn").addEventListener("click", function () {
-            drawCanvas(); // Assicura che il canvas sia aggiornato
-            setTimeout(() => { // Aspetta per garantire il rendering
+            drawCanvas();
+            setTimeout(() => {
                 const link = document.createElement("a");
                 link.download = "immagine_modificata.png";
                 link.href = canvas.toDataURL("image/png");
                 link.click();
-            }, 500); // Aspetta 500ms per assicurarsi che l'immagine venga disegnata
+            }, 500);
         });
+
     </script>
 
 </body>
