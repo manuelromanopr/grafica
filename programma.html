@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor Immagini</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        canvas {
+            border: 2px solid black;
+            max-width: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+        .controls {
+            margin-top: 20px;
+        }
+        input {
+            margin: 5px;
+        }
+        button {
+            padding: 10px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Carica due immagini per inserirle nei riquadri</h2>
+    
+    <div class="controls">
+        <input type="file" id="imageInput1" accept="image/*">
+        <input type="file" id="imageInput2" accept="image/*">
+        <button id="downloadBtn">Scarica Immagine</button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        // Imposta dimensioni fisse per il canvas
+        const CANVAS_WIDTH = 1080;
+        const CANVAS_HEIGHT = 1350;
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
+
+        // Carica il modello di sfondo
+        const background = new Image();
+        background.src = "modelloprova.png"; // Usa il nuovo modello
+
+        let image1 = new Image();
+        let image2 = new Image();
+        let backgroundLoaded = false;
+
+        background.onload = function() {
+            backgroundLoaded = true;
+            drawCanvas(); // Disegna solo dopo il caricamento dello sfondo
+        };
+
+        document.getElementById("imageInput1").addEventListener("change", function(event) {
+            loadImage(event.target.files[0], image1);
+        });
+
+        document.getElementById("imageInput2").addEventListener("change", function(event) {
+            loadImage(event.target.files[0], image2);
+        });
+
+        function loadImage(file, image) {
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    image.src = e.target.result;
+                    image.onload = () => {
+                        drawCanvas(); // Disegna di nuovo dopo il caricamento
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function drawCanvas() {
+            if (!backgroundLoaded) return; // Se lo sfondo non è caricato, esci
+
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Disegna il modello di sfondo
+            ctx.drawImage(background, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Posizioni e dimensioni dei due riquadri
+            const box1 = { x: 120, y: 300, width: 400, height: 700, radius: 40 };
+            const box2 = { x: 590, y: 300, width: 400, height: 700, radius: 40 };
+
+            // Disegna i riquadri con angoli smussati
+            drawRoundedRect(box1);
+            drawRoundedRect(box2);
+
+            // Adatta e inserisce le immagini nei riquadri
+            drawFittedImage(image1, box1);
+            drawFittedImage(image2, box2);
+        }
+
+        function drawRoundedRect(box) {
+            ctx.beginPath();
+            ctx.moveTo(box.x + box.radius, box.y);
+            ctx.lineTo(box.x + box.width - box.radius, box.y);
+            ctx.quadraticCurveTo(box.x + box.width, box.y, box.x + box.width, box.y + box.radius);
+            ctx.lineTo(box.x + box.width, box.y + box.height - box.radius);
+            ctx.quadraticCurveTo(box.x + box.width, box.y + box.height, box.x + box.width - box.radius, box.y + box.height);
+            ctx.lineTo(box.x + box.radius, box.y + box.height);
+            ctx.quadraticCurveTo(box.x, box.y + box.height, box.x, box.y + box.height - box.radius);
+            ctx.lineTo(box.x, box.y + box.radius);
+            ctx.quadraticCurveTo(box.x, box.y, box.x + box.radius, box.y);
+            ctx.closePath();
+            ctx.strokeStyle = "#000000"; // Colore bordo riquadro
+            ctx.lineWidth = 4;
+            ctx.stroke();
+        }
+
+        function drawFittedImage(img, box) {
+            if (!img.src) return;
+
+            const imgRatio = img.width / img.height;
+            const boxRatio = box.width / box.height;
+            let drawWidth, drawHeight, offsetX, offsetY;
+
+            if (imgRatio > boxRatio) {
+                // L'immagine è più larga del riquadro
+                drawHeight = box.height;
+                drawWidth = img.width * (box.height / img.height);
+                offsetX = box.x - (drawWidth - box.width) / 2;
+                offsetY = box.y;
+            } else {
+                // L'immagine è più alta del riquadro
+                drawWidth = box.width;
+                drawHeight = img.height * (box.width / img.width);
+                offsetX = box.x;
+                offsetY = box.y - (drawHeight - box.height) / 2;
+            }
+
+            // Usa una maschera per mantenere le immagini dentro i riquadri
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(box.x + box.radius, box.y);
+            ctx.lineTo(box.x + box.width - box.radius, box.y);
+            ctx.quadraticCurveTo(box.x + box.width, box.y, box.x + box.width, box.y + box.radius);
+            ctx.lineTo(box.x + box.width, box.y + box.height - box.radius);
+            ctx.quadraticCurveTo(box.x + box.width, box.y + box.height, box.x + box.width - box.radius, box.y + box.height);
+            ctx.lineTo(box.x + box.radius, box.y + box.height);
+            ctx.quadraticCurveTo(box.x, box.y + box.height, box.x, box.y + box.height - box.radius);
+            ctx.lineTo(box.x, box.y + box.radius);
+            ctx.quadraticCurveTo(box.x, box.y, box.x + box.radius, box.y);
+            ctx.closePath();
+            ctx.clip();
+
+            // Disegna l'immagine dentro il riquadro
+            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+            ctx.restore();
+        }
+
+        // Scarica l'immagine come PNG
+        document.getElementById("downloadBtn").addEventListener("click", function () {
+            drawCanvas(); // Assicura che il canvas sia aggiornato
+            setTimeout(() => { // Aspetta per garantire il rendering
+                const link = document.createElement("a");
+                link.download = "immagine_modificata.png";
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            }, 500); // Aspetta 500ms per assicurarsi che l'immagine venga disegnata
+        });
+    </script>
+
+</body>
+</html>
